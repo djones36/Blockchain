@@ -52,7 +52,8 @@ if __name__ == '__main__':
     id = f.read()
     print("ID is", id)
     f.close()
-
+    # coin counter
+    coins = 0
     # Run forever until interrupted
     while True:
         r = requests.get(url=node + "/last_block")
@@ -69,7 +70,7 @@ if __name__ == '__main__':
         # new_proof = ???
 
         start = time.time()
-        new_proof = proof_of_work(data)
+        new_proof = proof_of_work(data.get('last_block'))
         # breakpoint() # --> checkout ../Notes.py
         end = time.time()
         print(f"It took {end - start} to find a new proof")
@@ -79,7 +80,13 @@ if __name__ == '__main__':
         post_data = {"proof": new_proof, "id": id}
 
         r = requests.post(url=node + "/mine", json=post_data)
-        data = r.json()
+        # data = r.json()
+        if r.json() is not ValueError:
+            data = r.json()
+        else:
+            print('Server sent something unexpected. Exiting application now...')
+            break
+        
 
         # TODO: If the server responds with a 'message' 'New Block Forged'
         # add 1 to the number of coins mined and print it.  Otherwise,

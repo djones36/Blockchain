@@ -14,7 +14,7 @@ class Blockchain(object):
         self.current_transactions = []
 
         # Create the genesis block
-        self.new_block(previous_hash="I'm a teapot.", proof=100)
+        self.new_block(previous_hash=1, proof=100)
 
     def new_block(self, proof, previous_hash=None):
         """
@@ -37,7 +37,8 @@ class Blockchain(object):
             'timestamp': time(),
             'transactions': self.current_transactions,
             'proof': proof,
-            'previous_hash': previous_hash or self.hash(self.chain[-1]),
+            'previous_hash' : previous_hash,
+            # 'previous_hash': previous_hash or self.hash(self.chain[-1]),
         }
 
         # Reset the current list of transactions
@@ -130,33 +131,64 @@ print(blockchain.chain)
 print(blockchain.hash(blockchain.last_block))
 
 
-@app.route('/mine', methods=['GET'])
+@app.route('/mine', methods=['POST'])
 def mine():
-    # Run the proof of work algorithm to get the next proof
-    proof = blockchain.proof_of_work(blockchain.last_block)
+    # grab the request to be able to parse through
+    data = request.get_json()
 
-    # Forge the new Block by adding it to the chain with the proof
-    previous_hash = blockchain.hash(blockchain.last_block)
-    new_block = blockchain.new_block(proof, previous_hash)
+    # request validation
+    if 'proof' not in data:
+        return jsonify({ 'message': 'Proof not found.' }), 400
+    elif 'id' not in data:
+        return jsonify({ 'message': 'Id not found.' }), 400
+    ########## Class Solution ##########
+    # required = ['proof', 'data']
+    # if not all (k in data for k in required):
+    #     response = { 'message': 'Missing values' }
+    #     return jsonify(response), 400
+    ##########
 
-    response = {
-        # TODO: Send a JSON response with the new block
-        "block": new_block
-    }
+    # proof validation
+    input_proof = data.get('proof')
+    last_block = blockchain.last_block
+    last_block_string = json.dumps(last_block, sort_keys=True)
 
+    if blockchain.valid_proof(last_block_string, input_proof):
+        # create new block
+        previous_hash = blockchain.hash(last_block)
+        block = blockchain.new_block(input_proof, previous_hash)
+
+        response = {
+            # TODO: Send a JSON response with the new block
+            'new_block': block,
+            'message':'New Block Forged'
+        }
+
+        # return jsonify(response), 200
+    else:
+        response = {
+            'message': 'Invalid proof'
+        }
+        # return jsonify({ 'message': 'Invalid proof' }), 400
+    
+    # we return as such since both responses are technically 200
     return jsonify(response), 200
-
 
 @app.route('/chain', methods=['GET'])
 def full_chain():
     response = {
         # TODO: Return the chain and its current length
-        'chain': blockchain.chain,
         'length': len(blockchain.chain),
+        'chain': blockchain.chain
     }
     return jsonify(response), 200
 
-
+@app.route('/last_block', methods=['GET'])
+def last_block():
+    response = {
+        'last_block': blockchain.last_block
+    }
+    return jsonify(response), 200
 # Run the program on port 5000
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
