@@ -32,8 +32,12 @@ def valid_proof(block_string, proof):
     stringified previous block results in a hash that has the
     correct number of leading zeroes.
     :return: True if the resulting hash is a valid proof, False otherwise
-    """
-    pass
+    """ 
+    guess = f"{block_string}{proof}".encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+
+        # return True or False
+    return guess_hash[:6] == "000000"
 
 
 if __name__ == '__main__':
@@ -64,6 +68,13 @@ if __name__ == '__main__':
         # TODO: Get the block from `data` and use it to look for a new proof
         # new_proof = ???
 
+        start = time.time()
+        new_proof = proof_of_work(data)
+        # breakpoint() # --> checkout ../Notes.py
+        end = time.time()
+        print(f"It took {end - start} to find a new proof")
+        # print("New Proof", new_proof)
+
         # When found, POST it to the server {"proof": new_proof, "id": id}
         post_data = {"proof": new_proof, "id": id}
 
@@ -73,4 +84,10 @@ if __name__ == '__main__':
         # TODO: If the server responds with a 'message' 'New Block Forged'
         # add 1 to the number of coins mined and print it.  Otherwise,
         # print the message from the server.
-        pass
+
+        if data['message'] == "New Block Forged":
+            # add 1 to the number of coins mined and print it.
+            coins +=1
+            print(f'You have mined {coins} coin(s)!')
+        #print the message from the server.
+        print(f"{data['message']}\n")
