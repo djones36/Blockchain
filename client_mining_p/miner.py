@@ -3,7 +3,7 @@ import requests
 
 import sys
 import json
-
+import time
 
 def proof_of_work(block):
     """
@@ -13,7 +13,13 @@ def proof_of_work(block):
     in an effort to find a number that is a valid proof
     :return: A valid proof for the provided block
     """
-    pass
+    block_string = json.dumps(block)
+    proof = 0
+    print("Proof of work started")
+    while valid_proof(block_string, proof) is False:
+        proof += 1
+    print("Proof of work finished")
+    return proof
 
 
 def valid_proof(block_string, proof):
@@ -26,8 +32,12 @@ def valid_proof(block_string, proof):
     stringified previous block results in a hash that has the
     correct number of leading zeroes.
     :return: True if the resulting hash is a valid proof, False otherwise
-    """
-    pass
+    """ 
+    guess = f"{block_string}{proof}".encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+
+        # return True or False
+    return guess_hash[:6] == "000000"
 
 
 if __name__ == '__main__':
@@ -42,7 +52,8 @@ if __name__ == '__main__':
     id = f.read()
     print("ID is", id)
     f.close()
-
+    # coin counter
+    coins = 0
     # Run forever until interrupted
     while True:
         r = requests.get(url=node + "/last_block")
@@ -58,13 +69,32 @@ if __name__ == '__main__':
         # TODO: Get the block from `data` and use it to look for a new proof
         # new_proof = ???
 
+        start = time.time()
+        new_proof = proof_of_work(data.get('last_block'))
+        # breakpoint() # --> checkout ../Notes.py
+        end = time.time()
+        print(f"It took {end - start} to find a new proof")
+        # print("New Proof", new_proof)
+
         # When found, POST it to the server {"proof": new_proof, "id": id}
         post_data = {"proof": new_proof, "id": id}
 
         r = requests.post(url=node + "/mine", json=post_data)
-        data = r.json()
+        # data = r.json()
+        if r.json() is not ValueError:
+            data = r.json()
+        else:
+            print('Server sent something unexpected. Exiting application now...')
+            break
+        
 
         # TODO: If the server responds with a 'message' 'New Block Forged'
         # add 1 to the number of coins mined and print it.  Otherwise,
         # print the message from the server.
-        pass
+
+        if data['message'] == "New Block Forged":
+            # add 1 to the number of coins mined and print it.
+            coins +=1
+            print(f'You have mined {coins} coin(s)!')
+        #print the message from the server.
+        print(f"{data['message']}\n")
